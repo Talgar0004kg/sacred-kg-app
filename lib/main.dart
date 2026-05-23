@@ -11,7 +11,14 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_localizations.dart';
+import 'features/admin/admin_panel_screen.dart' as admin_feature;
+import 'features/agent/agent_panel_screen.dart' as agent_feature;
+import 'features/ai_guide/guide_selection_screen.dart' as guide_feature;
+import 'features/auth/login_screen.dart' as auth_feature;
+import 'features/tours/tours_list_screen.dart' as tours_feature;
 import 'localized_content.dart';
+import 'services/auth_service.dart';
+import 'services/locations_override_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,12 +49,15 @@ final appStateProvider = ChangeNotifierProvider<MockAppState>((ref) {
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: '/home',
+    initialLocation: '/',
     routes: [
       _appRoute('/', (_, __) => const SplashScreen()),
       _appRoute('/onboarding', (_, __) => const OnboardingScreen()),
-      _appRoute('/login', (_, __) => const LoginScreen()),
+      _appRoute('/login', (_, __) => const auth_feature.LoginScreen()),
       _appRoute('/register', (_, __) => const RegisterScreen()),
+      _appRoute('/admin', (_, __) => const admin_feature.AdminPanelScreen()),
+      _appRoute('/agent', (_, __) => const agent_feature.AgentPanelScreen()),
+      _appRoute('/tours', (_, __) => const tours_feature.ToursListScreen()),
       _appRoute('/home', (_, __) => const HomeScreen()),
       _appRoute('/map', (_, __) => const RegionsScreen()),
       _appRoute(
@@ -61,8 +71,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       _appRoute(
         '/ai',
-        (_, state) =>
-            AiAssistantScreen(placeId: state.uri.queryParameters['place']),
+        (_, __) => const guide_feature.GuideSelectionScreen(),
       ),
       _appRoute('/feed', (_, __) => const FeedScreen()),
       _appRoute('/feed/create', (_, __) => const CreatePostScreen()),
@@ -298,12 +307,16 @@ class Place {
     required String visitingRules,
     required String route,
     required this.colors,
+    String fullDescription = '',
+    String imageUrl = '',
   }) : _title = title,
        _shortDescription = shortDescription,
        _description = description,
        _culturalNote = culturalNote,
        _visitingRules = visitingRules,
-       _route = route;
+       _route = route,
+       _fullDescription = fullDescription,
+       _imageUrl = imageUrl;
 
   final String id;
   final String _title;
@@ -317,18 +330,57 @@ class Place {
   final String _culturalNote;
   final String _visitingRules;
   final String _route;
+  final String _fullDescription;
+  final String _imageUrl;
   final List<Color> colors;
 
-  String get title => LocalizedContent.placeField(id, 'title', _title);
-  String get shortDescription =>
-      LocalizedContent.placeField(id, 'shortDescription', _shortDescription);
+  LocationOverride? get _override =>
+      LocationOverridesService.overrideForSync(id);
+
+  String get title {
+    final o = _override?.title;
+    if (o != null && o.isNotEmpty) return o;
+    return LocalizedContent.placeField(id, 'title', _title);
+  }
+
+  String get shortDescription {
+    final o = _override?.shortDescription;
+    if (o != null && o.isNotEmpty) return o;
+    return LocalizedContent.placeField(id, 'shortDescription', _shortDescription);
+  }
+
   String get description =>
       LocalizedContent.placeField(id, 'description', _description);
-  String get culturalNote =>
-      LocalizedContent.placeField(id, 'culturalNote', _culturalNote);
-  String get visitingRules =>
-      LocalizedContent.placeField(id, 'visitingRules', _visitingRules);
-  String get route => LocalizedContent.placeField(id, 'route', _route);
+
+  String get fullDescription {
+    final o = _override?.fullDescription;
+    if (o != null && o.isNotEmpty) return o;
+    return _fullDescription;
+  }
+
+  String get imageUrl {
+    final o = _override?.imageUrl;
+    if (o != null && o.isNotEmpty) return o;
+    return _imageUrl;
+  }
+
+  String get culturalNote {
+    final o = _override?.culturalNote;
+    if (o != null && o.isNotEmpty) return o;
+    return LocalizedContent.placeField(id, 'culturalNote', _culturalNote);
+  }
+
+  String get visitingRules {
+    final o = _override?.visitingRules;
+    if (o != null && o.isNotEmpty) return o;
+    return LocalizedContent.placeField(id, 'visitingRules', _visitingRules);
+  }
+
+  String get route {
+    final o = _override?.route;
+    if (o != null && o.isNotEmpty) return o;
+    return LocalizedContent.placeField(id, 'route', _route);
+  }
 }
 
 class Review {
@@ -510,6 +562,10 @@ class MockData {
       route:
           'From Bishkek, take the road toward Tokmok. Local transport or a short taxi ride can complete the route.',
       colors: [Color(0xFF2D6A4F), Color(0xFFE0A02E), Color(0xFF9B4D2E)],
+      fullDescription:
+          'Башня Бурана — один из самых узнаваемых памятников Северного Кыргызстана. Это всё, что осталось от средневекового города Баласагун, столицы Караханидского каганата X–XII веков. Минарет (изначально около 45 м, сейчас 24 м после землетрясений) стоит в Чуйской долине, в 12 км от Токмока и примерно в 80 км от Бишкека. Рядом — открытое поле с балбалами (каменными статуями воинов), фрагментами стен и небольшим музеем. Что посмотреть: подняться по узкой винтовой лестнице на верх минарета (вид на долину и Кыргызский хребет), пройти по аллее балбалов, рассмотреть петроглифы и каменные жернова. Как добраться: из Бишкека — маршрутка или такси до Токмока, далее местное такси 12 км до башни. Лучшее время — апрель–октябрь, утром. Совет: возьмите воду и головной убор, на территории мало тени; уважайте балбалов — не садитесь и не лазайте по ним.',
+      imageUrl:
+          'https://commons.wikimedia.org/wiki/Special:FilePath/Burana%20Tower%2C%20Kyrgyzstan.jpg',
     ),
     Place(
       id: 'ala_archa',
@@ -530,6 +586,10 @@ class MockData {
       route:
           'Reach the park from Bishkek by car or organized transport, then follow marked trails.',
       colors: [Color(0xFF1D7D73), Color(0xFFB7E4C7), Color(0xFF5B7C46)],
+      fullDescription:
+          'Природный парк Ала-Арча расположен в Кыргызском хребте, в 40 км к югу от Бишкека. Это самый близкий к столице горный заповедник: ущелье длиной около 200 км², ледники, водопад Ак-Сай, альпинистская база и более десятка маркированных троп. Сакральная составляющая — родники, старые арчовые рощи (арча = можжевельник, который местные считают защитным деревом) и места, где традиционно совершают тихую молитву или загадывают добрые мысли. Что посмотреть: водопад Ак-Сай (3–4 часа от базы), панорамный обзор на пик Корона, прогулка по нижнему ущелью вдоль реки. Как добраться: из Бишкека — такси или собственное авто по трассе на юг через село Кашка-Суу. Лучшее время — май–сентябрь. Совет: не сходите с троп, не рвите можжевельник, уносите весь мусор; на высоте погода меняется быстро.',
+      imageUrl:
+          'https://commons.wikimedia.org/wiki/Special:FilePath/%D0%90%D0%BB%D0%B0-%D0%90%D1%80%D1%87%D0%B0%20%D1%81%D0%B2%D0%B5%D1%80%D1%85%D1%83%20%281%29.jpg',
     ),
     Place(
       id: 'cholpon_ata',
@@ -550,6 +610,10 @@ class MockData {
       route:
           'Travel to Cholpon-Ata on the north shore of Issyk-Kul, then follow local museum signage.',
       colors: [Color(0xFF1D7D73), Color(0xFFE0A02E), Color(0xFF202721)],
+      fullDescription:
+          'Музей петроглифов в Чолпон-Ате — это поле валунов площадью около 42 гектара на северном берегу Иссык-Куля. На камнях вырезано более двух тысяч рисунков возрастом от 2000 г. до н.э. до раннего средневековья: козлы, олени, барсы, охотники, ритуальные сцены, тамги родов. Камни лежат в естественном порядке, как древнее святилище. Что посмотреть: главное скопление крупных валунов с самыми выразительными сценами охоты, отдельные камни с барсами и козлами, информационные таблички. Как добраться: из Бишкека — маршрутка до Чолпон-Аты (около 4 часов), от центра города 1,5 км пешком или на такси по указателям к музею. Лучшее время — май–сентябрь, утром и под вечер, когда солнце под углом и рисунки видны лучше. Совет: ни в коем случае не обводите рисунки мелом и не прикасайтесь к ним; ходите по тропам, не по самим камням.',
+      imageUrl:
+          'https://commons.wikimedia.org/wiki/Special:FilePath/Petroglyph%20Museum%20of%20Cholpon-Ata%2006.jpg',
     ),
     Place(
       id: 'manjyly_ata',
@@ -570,6 +634,10 @@ class MockData {
       route:
           'Approach from the south shore road of Issyk-Kul; local guides can help find the spring area.',
       colors: [Color(0xFF2D6A4F), Color(0xFF1D7D73), Color(0xFFF4F7F2)],
+      fullDescription:
+          'Манжылы-Ата — комплекс из примерно тридцати родников и святилищ в долине на южном берегу Иссык-Куля, недалеко от села Тосор. Здесь чтят память суфийского святого XV века. Каждый родник, по преданию, помогает при разных болезнях: глазной, сердечный, женский, детский. Это живое место паломничества: местные приезжают семьями, читают молитвы, оставляют ленточки на деревьях. Что посмотреть: главный родник со скромным мазаром, тропа между источниками, виды на южный берег озера и хребет Терскей-Ала-Тоо. Как добраться: из Каракола или Бишкека по южной дороге Иссык-Куля до Тосора, далее по грунтовке вглубь долины — лучше с местным водителем. Лучшее время — июнь–сентябрь. Совет: одевайтесь скромно (закрытые плечи и колени), не фотографируйте людей без разрешения, не пейте воду из «не вашего» источника без спросу — это считается невежливым.',
+      imageUrl:
+          'https://commons.wikimedia.org/wiki/Special:FilePath/Issyk%20kul%20Lake%202.jpg',
     ),
     Place(
       id: 'jeti_oguz',
@@ -589,6 +657,10 @@ class MockData {
       route:
           'Travel from Karakol toward Jeti-Oguz village, then continue to the main rock viewpoints.',
       colors: [Color(0xFFB93F55), Color(0xFF9B4D2E), Color(0xFFE0A02E)],
+      fullDescription:
+          'Джеты-Огуз («Семь быков») — массив красных конгломератных скал в южной части Иссык-Куля, в 28 км от Каракола. По легенде, древний хан казнил семерых соперников, и на их крови поднялись эти красные скалы. Рядом — отдельный гребень «Разбитое сердце» (Жарылган-Жүрөк). Долина ведёт дальше в горы Терскей-Ала-Тоо, к водопаду «Девичьи слёзы» и альпийским лугам. Что посмотреть: смотровая площадка над Семью быками, водопад «Девичьи слёзы» (1,5 ч пешком), летние юрточные лагеря, тропа к высокогорным лугам Кок-Жайык. Как добраться: из Каракола — такси или маршрутка до села Джеты-Огуз, далее вглубь ущелья на машине. Лучшее время — июнь–сентябрь. Совет: не лезьте на сами скалы (порода крошится), берегите альпийские цветы, держите дистанцию от пасущихся лошадей.',
+      imageUrl:
+          'https://commons.wikimedia.org/wiki/Special:FilePath/Jeti-%C3%96g%C3%BCz%20Rocks%20-%20Issyk-Kul%20Region%2C%20Jeti-Oguz%20District.jpg',
     ),
     Place(
       id: 'tash_rabat',
@@ -608,6 +680,10 @@ class MockData {
       route:
           'From Naryn, take the road toward At-Bashy and continue by mountain road with suitable transport.',
       colors: [Color(0xFF5B7C46), Color(0xFF9B4D2E), Color(0xFF2D6A4F)],
+      fullDescription:
+          'Таш-Рабат — каменный купольный караван-сарай XV века (по другим данным — несторианский монастырь X века) на высоте 3200 метров в Ат-Башинском районе Нарынской области. Здесь останавливались караваны Великого Шёлкового пути перед перевалом Торугарт в Китай. Здание сохранилось почти целиком: 31 комната, центральный купольный зал, ходы для воды. Снаружи — пустая горная долина с юртами и табунами лошадей. Что посмотреть: интерьер купольного зала, боковые «кельи», вид с холма за караван-сараем, юрточные лагеря у реки. Как добраться: из Нарына — около 100 км по дороге на Торугарт через Ат-Башы, затем 15 км по грунтовке. Удобнее с туром или 4x4. Лучшее время — июнь–сентябрь. Совет: останьтесь на ночь в юрточном лагере — холодно, но небо со звёздами стоит того; внутри здания не зажигайте свечи и не курите.',
+      imageUrl:
+          'https://commons.wikimedia.org/wiki/Special:FilePath/Tash%20Rabat%20in%20mountains.jpg',
     ),
     Place(
       id: 'saimaluu_tash',
@@ -628,6 +704,10 @@ class MockData {
       route:
           'Access is seasonal and remote. The prototype recommends guided travel from Jalal-Abad or Naryn routes.',
       colors: [Color(0xFF202721), Color(0xFF8064A2), Color(0xFFE0A02E)],
+      fullDescription:
+          'Саймалуу-Таш («Узорчатый камень») — крупнейшее в Центральной Азии скопление петроглифов: более 90 000 рисунков на чёрных валунах в горной долине на высоте около 3000 м, на границе Джалал-Абадской и Нарынской областей. Самые ранние изображения — IV–III тыс. до н.э. Здесь и охотничьи сцены, и солнечные божества, и колесницы, и танцующие фигуры — древние люди приходили сюда как в открытое святилище. Что посмотреть: основное поле петроглифов «Саймалуу-Таш-1» в верхней долине, тропы между крупными плитами с символическими сценами. Как добраться: только с гидом — пеший подъём 1,5–2 дня от села Кёкарт через перевал, либо конный тур; самостоятельно опасно. Сезон открыт всего 2–3 месяца. Лучшее время — июль–август. Совет: возьмите тёплую одежду даже летом, не сбивайте «лишайник» с камней (он естественная защита рисунков), не оставляйте никаких меток.',
+      imageUrl:
+          'https://commons.wikimedia.org/wiki/Special:FilePath/Saimaluu%20Tash.jpg',
     ),
     Place(
       id: 'manas_ordo',
@@ -647,6 +727,10 @@ class MockData {
       route:
           'Travel from Talas city toward the complex by road; signage and local transport are available.',
       colors: [Color(0xFF9B4D2E), Color(0xFFE0A02E), Color(0xFF2D6A4F)],
+      fullDescription:
+          'Манас Ордо — мемориальный комплекс в 22 км к востоку от города Талас, в селе Таш-Арык. По преданию, здесь похоронен богатырь Манас, главный герой одноимённого эпоса (одного из крупнейших в мире — около 500 000 строк). Центр комплекса — гумбез (мавзолей) XIV века с резной портальной аркой, рядом — музей эпоса, статуи героев, ритуальные камни и древний курган. Что посмотреть: сам гумбез Манаса, музей с экспонатами по эпосу и быту кочевников, тропу вокруг кургана, монументальные скульптуры. Как добраться: из Бишкека — около 300 км через перевал Тоо-Ашуу, далее по трассе до Таласа и местный транспорт до села Таш-Арык. Лучшее время — май–октябрь. Совет: внутри гумбеза держите тишину и не фотографируйте людей в молитве; на территории работают манасчи — слушайте, не перебивайте.',
+      imageUrl:
+          'https://commons.wikimedia.org/wiki/Special:FilePath/Manas%20Ordo%20near%20Talas.jpg',
     ),
     Place(
       id: 'sulaiman_too',
@@ -666,6 +750,10 @@ class MockData {
       route:
           'Start from central Osh and use marked walking routes around the mountain and museum areas.',
       colors: [Color(0xFFB93F55), Color(0xFFE0A02E), Color(0xFF1D7D73)],
+      fullDescription:
+          'Сулайман-Тоо («Гора Соломона») — священная гора длиной около 1,6 км прямо в центре Оша. С 2009 года входит в список Всемирного наследия ЮНЕСКО. Это одно из старейших мест паломничества Центральной Азии: на горе и вокруг неё более 100 петроглифов, 17 культовых мест и пещер, древние «полировальные» жёлоба, где паломники веками натирали камни. На вершине стоит мечеть XVI века (бабура), приписываемая императору Бабуру. Что посмотреть: подъём по основной тропе с южной стороны, мечеть Бабура на вершине, пещерный музей внутри горы, петроглифы на боковых склонах. Как добраться: пешком из центра Оша (15 минут от базара). Лучшее время — апрель–октябрь, утром или ближе к закату. Совет: оденьтесь скромно (это действующее место паломничества), не пишите на камнях, держитесь подальше от молящихся, не фотографируйте их без разрешения.',
+      imageUrl:
+          'https://commons.wikimedia.org/wiki/Special:FilePath/Osh%2003-2016%20img06%20Sulayman%20Mountain.jpg',
     ),
     Place(
       id: 'osh_spring',
@@ -685,6 +773,10 @@ class MockData {
       route:
           'Use local directions from central Osh; the route is intended as a short city visit.',
       colors: [Color(0xFF1D7D73), Color(0xFFB7E4C7), Color(0xFFE0A02E)],
+      fullDescription:
+          'Река Ак-Буура («Белый верблюд») течёт через центр Оша, спускаясь с Алайского хребта. Вдоль её берегов сохранилось несколько старых родников и небольших мазаров, к которым местные приходят с просьбами о здоровье и удаче. Это не громкий туристический объект, а часть «городской» сакральной географии: люди по дороге на базар, в школу или на работу останавливаются, моют руки в роднике, шепчут короткую молитву. Что посмотреть: набережная в центре Оша, переход с базара к подножию Сулайман-Тоо вдоль реки, локальные родники с табличками. Как добраться: пешком от центра Оша, удобно совмещать с подъёмом на Сулайман-Тоо. Лучшее время — круглый год, утром. Совет: не загрязняйте источник, не наполняйте бутылки прямо в чашу родника — для этого есть отводные жёлобы; уступайте место местным.',
+      imageUrl:
+          'https://commons.wikimedia.org/wiki/Special:FilePath/Ak-Buura%20River%20in%20Osh.jpg',
     ),
     Place(
       id: 'arslanbob',
@@ -705,6 +797,10 @@ class MockData {
       route:
           'Travel from Jalal-Abad toward Bazar-Korgon and continue to Arslanbob village.',
       colors: [Color(0xFF2D6A4F), Color(0xFF5B7C46), Color(0xFFE0A02E)],
+      fullDescription:
+          'Арсланбоб — село и природный заповедник в Джалал-Абадской области, окружённый крупнейшим в мире реликтовым лесом грецкого ореха площадью около 11 000 га. По преданию, орех сюда принёс пророк, а сам Арсланбоб (буквально «лев-шейх») — местный святой, мавзолей которого стоит у въезда. Леса считаются сакральными: рубить старые деревья запрещено народной этикой. Что посмотреть: малый водопад (30 минут пешком), большой водопад (3–4 часа подъёма), мавзолей Арсланбоба, ореховые рощи в сезон сбора (сентябрь–октябрь), панорамная точка над селом. Как добраться: из Джалал-Абада — маршрутка до Базар-Коргона, далее до Арсланбоба (около 2 ч). Лучшее время — май–октябрь; сезон ореха — конец сентября. Совет: остановитесь у местной семьи через общественное турбюро (CBT) — это поддерживает деревню; не собирайте орехи без приглашения, это чужой урожай.',
+      imageUrl:
+          'https://commons.wikimedia.org/wiki/Special:FilePath/Arslanbob%20pano.jpg',
     ),
     Place(
       id: 'jalal_abad_springs',
@@ -723,6 +819,10 @@ class MockData {
           'Observe posted rules, do not block water access, and keep bathing or drinking areas clean.',
       route: 'Reach the resort area from Jalal-Abad city by local road.',
       colors: [Color(0xFF1D7D73), Color(0xFF2D6A4F), Color(0xFFF4F7F2)],
+      fullDescription:
+          'Курорт Джалал-Абад («Джалал-Абад-Аршан») — старейший бальнеологический санаторий Кыргызстана, расположенный на горе примерно в 5 км от центра города. Минеральные источники здесь были известны ещё со времён Великого Шёлкового пути; по преданиям, паломники приходили сюда не только за здоровьем, но и с молитвами. На территории — несколько горячих источников, ванные корпуса, парк и обзорная точка на долину. Что посмотреть: главный источник с питьевым павильоном, прогулка по парку санатория, обзорная площадка над городом, мечеть на склоне. Как добраться: из центра Джалал-Абада — маршрутка или такси до санатория «Джалал-Абад». Лучшее время — круглый год, особенно межсезонье. Совет: пейте минеральную воду маленькими порциями (она сильная), не приходите в купальню после обильной еды, уважайте режим работы лечебных корпусов.',
+      imageUrl:
+          'https://commons.wikimedia.org/wiki/Special:FilePath/Madaminov%20Street%2C%20Jalal-Abad%20city.%2001.jpg',
     ),
     Place(
       id: 'aigul_tash',
@@ -743,6 +843,10 @@ class MockData {
       route:
           'Travel from Batken city toward the protected area during the permitted season.',
       colors: [Color(0xFFB93F55), Color(0xFF8064A2), Color(0xFF5B7C46)],
+      fullDescription:
+          'Айгуль-Таш — каменистая гора в Баткенской области, недалеко от села Кадамжай, единственное место в мире, где растёт эндемик — цветок Айгуль (Fritillaria eduardii). По легенде, девушка по имени Айгуль спрыгнула с этой скалы, чтобы не выходить замуж за нелюбимого, и из её крови выросли алые поникшие колокольчики, которые цветут лишь несколько недель в апреле–мае. Цветок занесён в Красную книгу. Что посмотреть: цветение айгуля на южном склоне (апрель), мемориальный камень и табличка о легенде, виды на Алайский хребет и Ферганскую долину. Как добраться: из Баткена или Кадамжая — местный транспорт до села Шахимардан / Чаувай, далее с проводником пешком к склону. Лучшее время — апрель–начало мая, во время цветения. Совет: ни в коем случае не срывайте цветок — это уголовно наказуемо и убивает популяцию; ходите по тропе, не топчите склон.',
+      imageUrl:
+          'https://commons.wikimedia.org/wiki/Special:FilePath/%D0%93%D0%BE%D1%80%D0%B0%20%D0%90%D0%B9%D0%B3%D1%83%D0%BB.jpg',
     ),
   ];
 
@@ -1034,72 +1138,45 @@ class MockAppState extends ChangeNotifier {
   }
 }
 
-String mockAiReply({
-  required AiCharacter character,
-  required String prompt,
-  Place? place,
-}) {
-  final lower = prompt.toLowerCase();
-  final target = place?.title ?? LocalizedContent.phrase('this place');
-  final voice = LocalizedContent.aiVoice(character.id);
-  if (lower.contains('rule') ||
-      lower.contains('respect') ||
-      lower.contains('behav') ||
-      lower.contains('правил') ||
-      lower.contains('уваж') ||
-      lower.contains('эреже') ||
-      lower.contains('урмат')) {
-    return '$voice ${LocalizedContent.aiRules(target)}';
-  }
-  if (lower.contains('time') ||
-      lower.contains('season') ||
-      lower.contains('when') ||
-      lower.contains('время') ||
-      lower.contains('сезон') ||
-      lower.contains('убак') ||
-      lower.contains('мезгил')) {
-    return '$voice ${LocalizedContent.aiBestTime()}';
-  }
-  if (lower.contains('route') ||
-      lower.contains('get') ||
-      lower.contains('road') ||
-      lower.contains('маршрут') ||
-      lower.contains('дорог') ||
-      lower.contains('жол')) {
-    return place == null
-        ? '$voice ${LocalizedContent.aiChooseRegion()}'
-        : '$voice ${place.route}';
-  }
-  if (lower.contains('tradition') ||
-      lower.contains('special') ||
-      lower.contains('history') ||
-      lower.contains('традиц') ||
-      lower.contains('истор') ||
-      lower.contains('салт') ||
-      lower.contains('тарых')) {
-    return place == null
-        ? '$voice ${LocalizedContent.aiTraditionsOverview()}'
-        : '$voice ${place.culturalNote}';
-  }
-  return place == null
-      ? '$voice ${LocalizedContent.aiAskOverview()}'
-      : '$voice ${place.shortDescription} ${place.visitingRules}';
-}
 
-class SplashScreen extends ConsumerWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final auth = ref.watch(authProvider);
-    if (auth.loaded) {
-      Future.microtask(() {
-        if (context.mounted) {
-          context.go(auth.isLoggedIn ? '/home' : '/onboarding');
-        }
-      });
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends ConsumerState<SplashScreen> {
+  bool _redirected = false;
+
+  @override
+  void initState() {
+    super.initState();
+    LocationOverridesService.loadIfNeeded();
+    _decideRoute();
+  }
+
+  Future<void> _decideRoute() async {
+    final role = await AuthService.getCurrentRole();
+    if (!mounted || _redirected) return;
+    _redirected = true;
+    switch (role) {
+      case UserRole.admin:
+        final viewingAsUser = await AuthService.isAdminViewingAsUser();
+        if (!mounted) return;
+        context.go(viewingAsUser ? '/home' : '/admin');
+      case UserRole.agent:
+        context.go('/agent');
+      case UserRole.user:
+        context.go('/home');
+      case null:
+        context.go('/login');
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       body: Center(
         child: Column(
@@ -1443,6 +1520,13 @@ class HomeScreen extends ConsumerWidget {
         Icons.person,
         '/account',
         AppTheme.rose,
+      ),
+      (
+        'Туры',
+        'Маршруты от наших турагентов',
+        Icons.tour_outlined,
+        '/tours',
+        AppTheme.leaf,
       ),
     ];
     return AppScaffold(
@@ -3064,14 +3148,36 @@ class _CatalogPlaceCard extends StatelessWidget {
   }
 }
 
-class PlaceDetailScreen extends ConsumerWidget {
+class PlaceDetailScreen extends ConsumerStatefulWidget {
   const PlaceDetailScreen({required this.placeId, super.key});
 
   final String placeId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final place = MockData.placeById(placeId);
+  ConsumerState<PlaceDetailScreen> createState() => _PlaceDetailScreenState();
+}
+
+class _PlaceDetailScreenState extends ConsumerState<PlaceDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    LocationOverridesService.loadIfNeeded();
+    LocationOverridesService.addListener(_onOverrides);
+  }
+
+  @override
+  void dispose() {
+    LocationOverridesService.removeListener(_onOverrides);
+    super.dispose();
+  }
+
+  void _onOverrides() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final place = MockData.placeById(widget.placeId);
     final appState = ref.watch(appStateProvider);
     final isFavorite = appState.favorites.contains(place.id);
     final reviews = MockData.reviews
@@ -3088,19 +3194,51 @@ class PlaceDetailScreen extends ConsumerWidget {
             onFavorite: () =>
                 ref.read(appStateProvider).toggleFavorite(place.id),
           ),
+          if (place.imageUrl.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: AspectRatio(
+                aspectRatio: 16 / 10,
+                child: Image.network(
+                  place.imageUrl,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (_, child, progress) {
+                    if (progress == null) return child;
+                    return const Center(child: CircularProgressIndicator());
+                  },
+                  errorBuilder: (_, __, ___) => Container(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest,
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.broken_image_outlined),
+                  ),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 14),
           const _KyrgyzOrnamentBand(compact: true),
           const SizedBox(height: 14),
           _PlaceDetailStats(place: place),
           const SizedBox(height: 18),
           _PlaceIntroCard(place: place),
+          if (place.fullDescription.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            SectionBlock(
+              title: 'Подробно',
+              text: place.fullDescription,
+              icon: Icons.menu_book_outlined,
+            ),
+          ],
           const SizedBox(height: 14),
           _PlaceActionPanel(place: place),
           const SizedBox(height: 18),
           _DetailSectionTitle(
             title: t('Sacred knowledge'),
             action: t('Ask guide'),
-            onAction: () => context.push('/ai?place=${place.id}'),
+            onAction: () => context.push('/ai'),
           ),
           const SizedBox(height: 10),
           SectionBlock(
@@ -3536,408 +3674,6 @@ class _ReviewCard extends StatelessWidget {
   }
 }
 
-class AiAssistantScreen extends ConsumerStatefulWidget {
-  const AiAssistantScreen({this.placeId, super.key});
-
-  final String? placeId;
-
-  @override
-  ConsumerState<AiAssistantScreen> createState() => _AiAssistantScreenState();
-}
-
-class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
-  late AiCharacter selected = MockData.characters.first;
-  final input = TextEditingController();
-  final messages = <ChatMessage>[];
-
-  Place? get place =>
-      widget.placeId == null ? null : MockData.placeById(widget.placeId!);
-
-  @override
-  void initState() {
-    super.initState();
-    messages.add(
-      ChatMessage(
-        text:
-            'Salam. Ask about rules, history, route, traditions, or the best time to visit.',
-        fromUser: false,
-        timestamp: DateTime.now(),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    input.dispose();
-    super.dispose();
-  }
-
-  void send([String? preset]) {
-    final text = (preset ?? input.text).trim();
-    if (text.isEmpty) return;
-    setState(() {
-      messages.add(
-        ChatMessage(text: text, fromUser: true, timestamp: DateTime.now()),
-      );
-      messages.add(
-        ChatMessage(
-          text: mockAiReply(character: selected, prompt: text, place: place),
-          fromUser: false,
-          timestamp: DateTime.now(),
-        ),
-      );
-      input.clear();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final prompts = [
-      t('What is special here?'),
-      t('What rules should I follow?'),
-      t('Best time to visit?'),
-      t('How do I get there?'),
-    ];
-    return AppScaffold(
-      selectedIndex: 3,
-      title: t('AI guide'),
-      child: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              children: [
-                _AiGuideHero(place: place, selected: selected),
-                const SizedBox(height: 14),
-                const _KyrgyzOrnamentBand(compact: true),
-                const SizedBox(height: 16),
-                _DetailSectionTitle(title: t('Choose your guide')),
-                const SizedBox(height: 10),
-                Row(
-                  children: MockData.characters.map((character) {
-                    final isSelected = selected.id == character.id;
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          right: character.id == MockData.characters.first.id
-                              ? 6
-                              : 0,
-                          left: character.id == MockData.characters.first.id
-                              ? 0
-                              : 6,
-                        ),
-                        child: _AiCharacterCard(
-                          character: character,
-                          selected: isSelected,
-                          onTap: () => setState(() => selected = character),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 16),
-                _AiPromptStrip(prompts: prompts, onPrompt: send),
-                const SizedBox(height: 18),
-                _DetailSectionTitle(title: t('Conversation')),
-                const SizedBox(height: 10),
-                ...messages.indexed.map((entry) {
-                  final index = entry.$1;
-                  final message = entry.$2;
-                  return _ChatBubble(message: message, character: selected)
-                      .animate(delay: (20 * index).ms)
-                      .fadeIn(duration: 180.ms)
-                      .slideY(begin: 0.04, end: 0);
-                }),
-              ],
-            ),
-          ),
-          _AiInputBar(controller: input, onSend: send),
-        ],
-      ),
-    );
-  }
-}
-
-class _AiGuideHero extends StatelessWidget {
-  const _AiGuideHero({required this.place, required this.selected});
-
-  final Place? place;
-  final AiCharacter selected;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 206,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            AnimatedSacredModel(place: place, compact: true, showTitle: false),
-            CustomPaint(
-              painter: KyrgyzHeroPainter(
-                ornament: AppTheme.gold.withValues(alpha: 0.90),
-                mountain: Colors.white.withValues(alpha: 0.14),
-              ),
-            ),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    selected.color.withValues(alpha: 0.16),
-                    Colors.black.withValues(alpha: 0.24),
-                    Colors.black.withValues(alpha: 0.74),
-                  ],
-                ),
-              ),
-            ),
-            const Positioned(
-              right: 16,
-              top: 16,
-              child: _TundukMark(size: 46, color: Colors.white),
-            ),
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 16,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _HeroBadge(label: selected.name),
-                  const SizedBox(height: 10),
-                  Text(
-                    place == null ? t('Ask a cultural guide') : place!.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    place == null
-                        ? t(
-                            'Mock guidance for rules, stories, routes, and traditions.',
-                          )
-                        : t(
-                            'Place-aware mock answers for etiquette, stories, and visit planning.',
-                          ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.92),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    ).animate().fadeIn(duration: 320.ms).slideY(begin: 0.03, end: 0);
-  }
-}
-
-class _AiCharacterCard extends StatelessWidget {
-  const _AiCharacterCard({
-    required this.character,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final AiCharacter character;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        height: 126,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: selected
-              ? character.color
-              : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: character.color.withValues(alpha: selected ? 0.9 : 0.22),
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: CustomPaint(
-                painter: KyrgyzCornerPainter(
-                  color: (selected ? Colors.white : character.color).withValues(
-                    alpha: 0.25,
-                  ),
-                ),
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    _TundukMark(
-                      size: 30,
-                      color: selected ? Colors.white : character.color,
-                    ),
-                    const Spacer(),
-                    if (selected)
-                      const Icon(
-                        Icons.check_circle,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                  ],
-                ),
-                const Spacer(),
-                Text(
-                  character.name,
-                  style: TextStyle(
-                    color: selected ? Colors.white : null,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                Text(
-                  character.role,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: selected
-                        ? Colors.white.withValues(alpha: 0.88)
-                        : null,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AiPromptStrip extends StatelessWidget {
-  const _AiPromptStrip({required this.prompts, required this.onPrompt});
-
-  final List<String> prompts;
-  final ValueChanged<String> onPrompt;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 52,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: prompts.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, index) => ActionChip(
-          avatar: const _TundukMark(size: 18, color: AppTheme.rose),
-          label: Text(prompts[index]),
-          onPressed: () => onPrompt(prompts[index]),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChatBubble extends StatelessWidget {
-  const _ChatBubble({required this.message, required this.character});
-
-  final ChatMessage message;
-  final AiCharacter character;
-
-  @override
-  Widget build(BuildContext context) {
-    final isUser = message.fromUser;
-    final bubbleColor = isUser
-        ? Theme.of(context).colorScheme.primary
-        : Theme.of(context).colorScheme.surface;
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 330),
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: bubbleColor,
-          borderRadius: BorderRadius.circular(8),
-          border: isUser
-              ? null
-              : Border.all(color: character.color.withValues(alpha: 0.16)),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (!isUser) ...[
-              _TundukMark(size: 22, color: character.color),
-              const SizedBox(width: 8),
-            ],
-            Flexible(
-              child: Text(
-                message.text,
-                style: TextStyle(
-                  color: isUser
-                      ? Theme.of(context).colorScheme.onPrimary
-                      : null,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AiInputBar extends StatelessWidget {
-  const _AiInputBar({required this.controller, required this.onSend});
-
-  final TextEditingController controller;
-  final VoidCallback onSend;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          border: Border(
-            top: BorderSide(color: Theme.of(context).dividerColor),
-          ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: controller,
-                decoration: InputDecoration(
-                  hintText: t('Ask about rules, route, or traditions'),
-                ),
-                onSubmitted: (_) => onSend(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton.filled(onPressed: onSend, icon: const Icon(Icons.send)),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
@@ -4852,7 +4588,8 @@ class AccountScreen extends ConsumerWidget {
           FilledButton.tonalIcon(
             onPressed: () async {
               await ref.read(authProvider).logout();
-              if (context.mounted) context.go('/onboarding');
+              await AuthService.logout();
+              if (context.mounted) context.go('/login');
             },
             icon: const Icon(Icons.logout),
             label: Text(l10n.logout),
@@ -4879,7 +4616,8 @@ class AccountScreen extends ConsumerWidget {
               );
               if (confirmed == true) {
                 await ref.read(authProvider).deleteAccount();
-                if (context.mounted) context.go('/onboarding');
+                await AuthService.logout();
+                if (context.mounted) context.go('/login');
               }
             },
             icon: const Icon(Icons.delete_outline),
@@ -4921,7 +4659,15 @@ class AppScaffold extends StatelessWidget {
         appBar: title == null
             ? null
             : AppBar(title: Text(title!), actions: actions),
-        body: SafeArea(top: title == null, child: child),
+        body: SafeArea(
+          top: title == null,
+          child: Column(
+            children: [
+              const _AdminViewAsUserBanner(),
+              Expanded(child: child),
+            ],
+          ),
+        ),
         bottomNavigationBar:
             NavigationBar(
                   selectedIndex: navIndex,
@@ -4967,6 +4713,72 @@ class AppScaffold extends StatelessWidget {
                 .animate()
                 .fadeIn(duration: 180.ms)
                 .slideY(begin: 0.18, end: 0, curve: Curves.easeOutCubic),
+      ),
+    );
+  }
+}
+
+/// Shows a thin banner at the top of [AppScaffold] when an administrator has
+/// switched into the user-facing UI, so they can quickly return to /admin.
+class _AdminViewAsUserBanner extends StatefulWidget {
+  const _AdminViewAsUserBanner();
+
+  @override
+  State<_AdminViewAsUserBanner> createState() => _AdminViewAsUserBannerState();
+}
+
+class _AdminViewAsUserBannerState extends State<_AdminViewAsUserBanner> {
+  bool _visible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    final v = await AuthService.isAdminViewingAsUser();
+    if (!mounted) return;
+    setState(() => _visible = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_visible) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.tertiaryContainer,
+      child: InkWell(
+        onTap: () async {
+          await AuthService.setAdminViewAsUser(false);
+          if (!context.mounted) return;
+          context.go('/admin');
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Icon(
+                Icons.admin_panel_settings_outlined,
+                color: theme.colorScheme.onTertiaryContainer,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Режим администратора (просмотр глазами пользователя) — '
+                  'нажмите, чтобы вернуться в админ-панель',
+                  style: TextStyle(
+                    color: theme.colorScheme.onTertiaryContainer,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: theme.colorScheme.onTertiaryContainer,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
