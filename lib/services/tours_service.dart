@@ -13,6 +13,13 @@ class Tour {
     required this.price,
     required this.durationDays,
     required this.createdAt,
+    this.startDate,
+    this.endDate,
+    this.peopleCount = 0,
+    this.photoUrls = const <String>[],
+    this.currency = 'сом',
+    this.program = '',
+    this.conditions = '',
   });
 
   final String id;
@@ -24,12 +31,33 @@ class Tour {
   final int durationDays;
   final DateTime createdAt;
 
+  /// Поля редактора тура (Task #5). Опциональны для совместимости с
+  /// существующими демо-турами без дат.
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final int peopleCount;
+  final List<String> photoUrls;
+  final String currency;
+
+  /// Программа тура по дням (опционально).
+  final String program;
+
+  /// Условия участия: что включено, требования, ограничения (опционально).
+  final String conditions;
+
   Tour copyWith({
     String? title,
     String? description,
     List<String>? locationIds,
     double? price,
     int? durationDays,
+    DateTime? startDate,
+    DateTime? endDate,
+    int? peopleCount,
+    List<String>? photoUrls,
+    String? currency,
+    String? program,
+    String? conditions,
   }) {
     return Tour(
       id: id,
@@ -40,6 +68,13 @@ class Tour {
       price: price ?? this.price,
       durationDays: durationDays ?? this.durationDays,
       createdAt: createdAt,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      peopleCount: peopleCount ?? this.peopleCount,
+      photoUrls: photoUrls ?? this.photoUrls,
+      currency: currency ?? this.currency,
+      program: program ?? this.program,
+      conditions: conditions ?? this.conditions,
     );
   }
 
@@ -52,6 +87,13 @@ class Tour {
     'price': price,
     'durationDays': durationDays,
     'createdAt': createdAt.toIso8601String(),
+    if (startDate != null) 'startDate': startDate!.toIso8601String(),
+    if (endDate != null) 'endDate': endDate!.toIso8601String(),
+    'peopleCount': peopleCount,
+    'photoUrls': photoUrls,
+    'currency': currency,
+    'program': program,
+    'conditions': conditions,
   };
 
   factory Tour.fromJson(Map<String, dynamic> json) => Tour(
@@ -67,6 +109,20 @@ class Tour {
     createdAt:
         DateTime.tryParse(json['createdAt'] as String? ?? '') ??
         DateTime.now(),
+    startDate: json['startDate'] is String
+        ? DateTime.tryParse(json['startDate'] as String)
+        : null,
+    endDate: json['endDate'] is String
+        ? DateTime.tryParse(json['endDate'] as String)
+        : null,
+    peopleCount: (json['peopleCount'] as num?)?.toInt() ?? 0,
+    photoUrls: (json['photoUrls'] as List<dynamic>?)
+            ?.map((e) => e as String)
+            .toList() ??
+        const <String>[],
+    currency: json['currency'] as String? ?? 'сом',
+    program: json['program'] as String? ?? '',
+    conditions: json['conditions'] as String? ?? '',
   );
 }
 
@@ -113,6 +169,13 @@ class ToursService {
     required List<String> locationIds,
     required double price,
     required int durationDays,
+    DateTime? startDate,
+    DateTime? endDate,
+    int peopleCount = 0,
+    List<String> photoUrls = const <String>[],
+    String currency = 'сом',
+    String program = '',
+    String conditions = '',
   }) async {
     final all = await getAll();
     final tour = Tour(
@@ -124,10 +187,33 @@ class ToursService {
       price: price,
       durationDays: durationDays,
       createdAt: DateTime.now(),
+      startDate: startDate,
+      endDate: endDate,
+      peopleCount: peopleCount,
+      photoUrls: photoUrls,
+      currency: currency,
+      program: program,
+      conditions: conditions,
     );
     all.add(tour);
     await _save(all);
     return tour;
+  }
+
+  /// Поиск тура по id.
+  static Future<Tour?> getById(String id) async {
+    final all = await getAll();
+    for (final t in all) {
+      if (t.id == id) return t;
+    }
+    return null;
+  }
+
+  static Future<void> addRaw(Tour tour) async {
+    final all = await getAll();
+    if (all.any((t) => t.id == tour.id)) return;
+    all.add(tour);
+    await _save(all);
   }
 
   static Future<void> update(Tour tour) async {

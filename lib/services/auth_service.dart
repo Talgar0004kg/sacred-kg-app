@@ -46,9 +46,12 @@ class AuthService {
   static const String _kSessionActive = 'auth_session';
   static const String _kAgentsJson = 'auth_agents_json';
   static const String _kAdminViewAsUser = 'auth_admin_view_as_user';
+  static const String _kBlocklistJson = 'auth_blocklist_json';
 
   /// Returns the role that matches the supplied credentials, or null if no
   /// role matches.
+  ///
+  /// Бросает [BlockedUserException], если email в blocklist.
   static Future<UserRole?> resolveRole(String email, String password) async {
     final trimmedEmail = email.trim().toLowerCase();
     if (trimmedEmail == adminEmail && password == adminPassword) {
@@ -58,9 +61,17 @@ class AuthService {
     final match = agents.where(
       (a) => a.email.toLowerCase() == trimmedEmail && a.password == password,
     );
-    if (match.isNotEmpty) return UserRole.agent;
+    if (match.isNotEmpty) {
+      final block = await getBlockReason(trimmedEmail);
+      if (block != null) throw BlockedUserException(block);
+      return UserRole.agent;
+    }
     // Any other non-empty creds become a regular user.
-    if (trimmedEmail.isNotEmpty && password.isNotEmpty) return UserRole.user;
+    if (trimmedEmail.isNotEmpty && password.isNotEmpty) {
+      final block = await getBlockReason(trimmedEmail);
+      if (block != null) throw BlockedUserException(block);
+      return UserRole.user;
+    }
     return null;
   }
 
@@ -84,13 +95,12 @@ class AuthService {
     await prefs.setString('userName', displayName);
   }
 
-  /// Convenience for the "Login as guest" button: stores a regular USER session.
+  /// Гостевой режим — НИЧЕГО не сохраняем. Гость = посетитель без сессии.
+  /// Все действия, требующие аккаунт, должны проходить через [AuthGuard].
+  /// Метод оставлен для обратной совместимости и просто сбрасывает любой
+  /// флаг текущей сессии, если он был.
   static Future<void> loginAsGuest() async {
-    await login(
-      role: UserRole.user,
-      email: 'guest@sacred.kg',
-      name: 'Guest',
-    );
+    await logout();
   }
 
   static Future<void> logout() async {
@@ -170,6 +180,18 @@ class AuthService {
     return List.generate(length, (_) => chars[rnd.nextInt(chars.length)]).join();
   }
 
+  /// Прямая вставка предсозданных кредов агента (для демо-сидов).
+  /// Идемпотентно: повторное добавление того же email — no-op.
+  static Future<void> addAgentRaw(AgentCredentials agent) async {
+    final agents = await getAgents();
+    final exists = agents.any(
+      (a) => a.email.toLowerCase() == agent.email.toLowerCase(),
+    );
+    if (exists) return;
+    agents.add(agent);
+    await _saveAgents(agents);
+  }
+
   static Future<AgentCredentials> createAgent() async {
     final agents = await getAgents();
     final used = agents.map((a) => a.email).toSet();
@@ -188,6 +210,76 @@ class AuthService {
     agents.add(agent);
     await _saveAgents(agents);
     return agent;
+  }
+
+  /// Ручное создание агента с указанными email и паролем.
+  /// Бросает [StateError] если email уже занят.
+  static Future<AgentCredentials> createAgentWithCredentials({
+    required String email,
+    required String password,
+  }) async {
+    final normalized = email.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      throw ArgumentError('Email пуст');
+    }
+    if (password.trim().length < 4) {
+      throw ArgumentError('Пароль слишком короткий (минимум 4 символа)');
+    }
+    if (normalized == adminEmail) {
+      throw StateError('Этот email зарезервирован');
+    }
+    final agents = await getAgents();
+    if (agents.any((a) => a.email.toLowerCase() == normalized)) {
+      throw StateError('Агент с таким email уже существует');
+    }
+    final agent = AgentCredentials(
+      email: email.trim(),
+      password: password.trim(),
+      createdAt: DateTime.now(),
+    );
+    agents.add(agent);
+    await _saveAgents(agents);
+    return agent;
+  }
+
+  /// Обновление кредов агента (email и/или пароль).
+  static Future<void> updateAgent({
+    required String oldEmail,
+    String? newEmail,
+    String? newPassword,
+  }) async {
+    final agents = await getAgents();
+    final idx = agents.indexWhere(
+      (a) => a.email.toLowerCase() == oldEmail.trim().toLowerCase(),
+    );
+    if (idx == -1) throw StateError('Агент не найден');
+    final current = agents[idx];
+    final updatedEmail = (newEmail == null || newEmail.trim().isEmpty)
+        ? current.email
+        : newEmail.trim();
+    final updatedPassword =
+        (newPassword == null || newPassword.trim().isEmpty)
+            ? current.password
+            : newPassword.trim();
+    if (updatedEmail.toLowerCase() != current.email.toLowerCase()) {
+      final exists = agents.any(
+        (a) => a.email.toLowerCase() == updatedEmail.toLowerCase(),
+      );
+      if (exists) throw StateError('Этот email уже используется');
+    }
+    agents[idx] = AgentCredentials(
+      email: updatedEmail,
+      password: updatedPassword,
+      createdAt: current.createdAt,
+    );
+    await _saveAgents(agents);
+  }
+
+  /// Сбрасывает пароль агента на новый случайный, возвращает его.
+  static Future<String> resetAgentPassword(String email) async {
+    final newPassword = _randomPassword();
+    await updateAgent(oldEmail: email, newPassword: newPassword);
+    return newPassword;
   }
 
   static Future<void> deleteAgent(String email) async {
@@ -209,4 +301,70 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kAdminViewAsUser, value);
   }
+
+  // ---------- User blocklist ----------
+
+  static Future<Map<String, String>> _readBlocklist() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_kBlocklistJson);
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final decoded = json.decode(raw) as Map<String, dynamic>;
+      return decoded.map((k, v) => MapEntry(k, v as String));
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<void> _writeBlocklist(Map<String, String> map) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kBlocklistJson, json.encode(map));
+  }
+
+  /// Все заблокированные email → причина блокировки.
+  static Future<Map<String, String>> getBlocklist() => _readBlocklist();
+
+  /// Если email в блок-листе — возвращает причину. Иначе null.
+  static Future<String?> getBlockReason(String email) async {
+    final list = await _readBlocklist();
+    return list[email.trim().toLowerCase()];
+  }
+
+  static Future<bool> isBlocked(String email) async {
+    return (await getBlockReason(email)) != null;
+  }
+
+  /// Блокирует пользователя с причиной (можно пустой).
+  /// Заодно завершает его активную сессию, если она была.
+  static Future<void> blockUser(String email, {String reason = ''}) async {
+    final key = email.trim().toLowerCase();
+    if (key.isEmpty || key == adminEmail.toLowerCase()) return;
+    final list = await _readBlocklist();
+    list[key] = reason;
+    await _writeBlocklist(list);
+
+    // Если этот пользователь сейчас залогинен на этом устройстве — выкидываем.
+    final prefs = await SharedPreferences.getInstance();
+    final currentEmail = prefs.getString(_kSessionEmail)?.toLowerCase();
+    if (currentEmail == key) {
+      await logout();
+    }
+  }
+
+  static Future<void> unblockUser(String email) async {
+    final key = email.trim().toLowerCase();
+    final list = await _readBlocklist();
+    list.remove(key);
+    await _writeBlocklist(list);
+  }
+}
+
+/// Исключение, которое летит из [AuthService.resolveRole], если email в
+/// blocklist. UI-слой ловит и показывает пользователю причину.
+class BlockedUserException implements Exception {
+  BlockedUserException(this.reason);
+  final String reason;
+
+  @override
+  String toString() => 'BlockedUserException: $reason';
 }

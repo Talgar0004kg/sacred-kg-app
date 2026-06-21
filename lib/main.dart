@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,17 +12,28 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_localizations.dart';
+import 'core/kg_phone_input_formatter.dart';
 import 'features/admin/admin_panel_screen.dart' as admin_feature;
 import 'features/agent/agent_panel_screen.dart' as agent_feature;
 import 'features/ai_guide/guide_selection_screen.dart' as guide_feature;
+import 'features/auth/auth_guard.dart';
 import 'features/auth/login_screen.dart' as auth_feature;
+import 'features/comments/comments_section.dart';
+import 'features/feed/post_detail_screen.dart';
+import 'features/notifications/notifications_screen.dart';
+import 'features/requests/my_requests_list.dart';
+import 'features/tours/tour_detail_screen.dart' as tour_detail;
 import 'features/tours/tours_list_screen.dart' as tours_feature;
 import 'localized_content.dart';
 import 'services/auth_service.dart';
 import 'services/locations_override_service.dart';
+import 'services/comments_service.dart';
+import 'services/requests_service.dart';
+import 'services/seed_data.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SeedData.ensureSeeded();
   runApp(const ProviderScope(child: SacredKgApp()));
 }
 
@@ -58,6 +70,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       _appRoute('/admin', (_, __) => const admin_feature.AdminPanelScreen()),
       _appRoute('/agent', (_, __) => const agent_feature.AgentPanelScreen()),
       _appRoute('/tours', (_, __) => const tours_feature.ToursListScreen()),
+      _appRoute(
+        '/tour/:id',
+        (_, state) =>
+            tour_detail.TourDetailScreen(id: state.pathParameters['id']!),
+      ),
       _appRoute('/home', (_, __) => const HomeScreen()),
       _appRoute('/map', (_, __) => const RegionsScreen()),
       _appRoute(
@@ -76,12 +93,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       _appRoute('/feed', (_, __) => const FeedScreen()),
       _appRoute('/feed/create', (_, __) => const CreatePostScreen()),
       _appRoute(
+        '/feed/post/:id',
+        (_, state) => PostDetailScreen(id: state.pathParameters['id']!),
+      ),
+      _appRoute(
         '/booking',
         (_, state) =>
             BookingScreen(placeId: state.uri.queryParameters['place']),
       ),
       _appRoute('/settings', (_, __) => const SettingsScreen()),
       _appRoute('/account', (_, __) => const AccountScreen()),
+      _appRoute('/notifications', (_, __) => const NotificationsScreen()),
     ],
   );
 });
@@ -1131,6 +1153,146 @@ class MockData {
         'assets/places/aigul_tash_4.jpg',
       ],
     ),
+    Place(
+      id: 'son_kul',
+      title: 'Сон-Куль',
+      regionId: 'naryn',
+      type: PlaceType.naturalSacredPlace,
+      rating: 4.9,
+      popularity: 95,
+      reviewsCount: 41,
+      shortDescription:
+          'Высокогорное озеро 3016 м, юрточные лагеря и звёздное небо.',
+      description:
+          'Сон-Куль — летний джайлоо Кыргызстана, доступный с июня по сентябрь. Озеро на высоте 3016 м окружено пастбищами, юртами кочевников, табунами лошадей.',
+      culturalNote:
+          'Летние перекочёвки на Сон-Куль — живая традиция, важная для культурной идентичности скотоводов.',
+      visitingRules:
+          'Не мусорить, не пугать скот, спрашивать разрешения, прежде чем фотографировать людей. Не купаться в озере без надобности — местные считают воду священной.',
+      route:
+          'Из Нарына: 4–5 часов на 4×4 через перевал. Из Кочкора: тоже 4×4, через перевал Калмак-Ашуу.',
+      colors: [Color(0xFF1D7D73), Color(0xFF5B7C46), Color(0xFFE0A02E)],
+      fullDescription:
+          'Высокогорное озеро на 3016 м, площадь 270 км². Доступно с июня по сентябрь, остальное время закрыто снегом. Лагеря юрт по всему берегу, цена ночёвки 1000–1500 сом с ужином и завтраком. Лошадиные прогулки, рыбалка (по разрешению), наблюдение за беркутами.\n\n'
+          'Подъезд: из Нарына через перевал Долон, либо из Кочкора через Калмак-Ашуу (3446 м). Только 4×4. Связи нет, заправок нет — заправляйтесь в Кочкоре. Тёплая одежда обязательна даже в июле: ночью +2…+5°C.',
+      imageUrl: 'assets/places/tash_rabat_1.jpg',
+      images: [
+        'assets/places/tash_rabat_1.jpg',
+        'assets/places/tash_rabat_2.jpg',
+      ],
+    ),
+    Place(
+      id: 'sary_chelek',
+      title: 'Сары-Челек',
+      regionId: 'jalal_abad',
+      type: PlaceType.naturalSacredPlace,
+      rating: 4.8,
+      popularity: 87,
+      reviewsCount: 29,
+      shortDescription:
+          'Изумрудное озеро в реликтовом лесу, биосферный заповедник ЮНЕСКО.',
+      description:
+          'Жемчужина Западного Тянь-Шаня — горное озеро 1873 м в окружении орехово-плодового реликтового леса.',
+      culturalNote:
+          'Заповедник с 1959 года, биосферный резерват ЮНЕСКО. Любое нарушение охраны — серьёзный проступок.',
+      visitingRules:
+          'Только организованные группы с местным гидом. Купание запрещено. Костры запрещены. Не сходить с тропы — растительность хрупкая, многие виды эндемики.',
+      route:
+          'Из Джалал-Абада: 3 часа до села Аркит, далее КПП заповедника. Из Бишкека — день в пути через Токтогул.',
+      colors: [Color(0xFF2D6A4F), Color(0xFF1D7D73), Color(0xFFE0A02E)],
+      fullDescription:
+          'Озеро на высоте 1873 м образовалось около 10 тысяч лет назад в результате обвала. Глубина до 234 м, прозрачность 16 м. Вокруг — 7 малых озёр («7 драгоценностей»), реликтовые ореховые рощи, яблони Сиверса, дикие груши.\n\n'
+          'Вход в заповедник платный (250–500 сом). С гидом — обязательно. Размещение — в селе Аркит (гостевые дома CBT). Лучший сезон: июнь — октябрь.',
+      imageUrl: 'assets/places/arslanbob_1.jpg',
+      images: [
+        'assets/places/arslanbob_1.jpg',
+        'assets/places/arslanbob_4.jpg',
+      ],
+    ),
+    Place(
+      id: 'karakol',
+      title: 'Каракол',
+      regionId: 'issyk_kul',
+      type: PlaceType.historicalComplex,
+      rating: 4.7,
+      popularity: 92,
+      reviewsCount: 56,
+      shortDescription:
+          'Город у восточного берега Иссык-Куля, дунганская мечеть и Русская церковь.',
+      description:
+          'Каракол — административный центр Иссык-Кульской области, отправная точка для треккингов в Терскей-Ала-Тоо.',
+      culturalNote:
+          'Мультикультурный город — кыргызы, русские, дунгане, уйгуры. Дунганская мечеть из дерева без единого гвоздя (1910 г.).',
+      visitingRules:
+          'Внутри Русской церкви и Дунганской мечети — тишина, без фото молящихся, женщинам — платок.',
+      route:
+          'Из Бишкека: 6–7 часов на маршрутке или машине вдоль северного берега Иссык-Куля.',
+      colors: [Color(0xFF9B4D2E), Color(0xFFE0A02E), Color(0xFF2D6A4F)],
+      fullDescription:
+          'Город основан в 1869 году как русское укрепление. Население ~80 000. Главные достопримечательности: Дунганская мечеть (1910 г., без гвоздей), Русская православная церковь (1895 г., деревянная), могила Пржевальского, дунганский базар, зоопарк, горнолыжная база.\n\n'
+          'Каракол — база для треккингов: ущелья Алтын-Арашан (горячие источники), Жыргалан, Каракольское ущелье. Дунганская кухня (лагман, ашлямфу, манты).',
+      imageUrl: 'assets/places/jeti_oguz_1.jpg',
+      images: [
+        'assets/places/jeti_oguz_1.jpg',
+        'assets/places/jeti_oguz_5.jpg',
+      ],
+    ),
+    Place(
+      id: 'skazka_canyon',
+      title: 'Сказка-каньон',
+      regionId: 'issyk_kul',
+      type: PlaceType.naturalSacredPlace,
+      rating: 4.6,
+      popularity: 81,
+      reviewsCount: 34,
+      shortDescription:
+          'Красные скалы причудливой формы на южном берегу Иссык-Куля.',
+      description:
+          'Каньон из красного песчаника с фигурами, напоминающими замки, драконов и Великую Китайскую стену.',
+      culturalNote:
+          'Народное название — «Сказка» — закрепилось благодаря фантастическим формам выветривания.',
+      visitingRules:
+          'Не лазить по неустойчивым склонам — порода рыхлая. Не оставлять мусор. Брать воду — там нет источников.',
+      route:
+          'Между сёлами Тосор и Каджи-Сай на южном берегу Иссык-Куля, 15 км от трассы.',
+      colors: [Color(0xFFB93F55), Color(0xFFE0A02E), Color(0xFF9B4D2E)],
+      fullDescription:
+          'Каньон длиной около 1 км, образованный эрозией красного песчаника. Формы скал получили народные названия: «Драконы», «Великая Китайская стена», «Замок», «Лица».\n\n'
+          'Вход бесплатный. От парковки до главного гребня — 15 минут пешком. Лучшее время: рассвет и закат, когда косой свет подчёркивает рельеф. Летом днём +35°C и нет тени — берите воду и шляпу.',
+      imageUrl: 'assets/places/jeti_oguz_3.jpg',
+      images: [
+        'assets/places/jeti_oguz_3.jpg',
+        'assets/places/jeti_oguz_4.jpg',
+      ],
+    ),
+    Place(
+      id: 'kochkor',
+      title: 'Кочкор',
+      regionId: 'naryn',
+      type: PlaceType.historicalComplex,
+      rating: 4.5,
+      popularity: 70,
+      reviewsCount: 18,
+      shortDescription:
+          'Село-перекрёсток с лучшим в стране центром народных ремёсел (CBT).',
+      description:
+          'Кочкор — центр Кочкорской долины, известен мастер-классами по изготовлению шырдаков (войлочных ковров) и юрт.',
+      culturalNote:
+          'Войлочное ковроделие — традиция, переходящая от матери к дочери. Каждый узор — символ рода.',
+      visitingRules:
+          'Когда мастер показывает технику — не перебивать. Покупая шырдак, торгуйтесь уважительно — это многомесячный труд.',
+      route:
+          'Из Бишкека: 4 часа на маршрутке через перевал Тоо-Ашуу. По дороге к Сон-Кулю.',
+      colors: [Color(0xFFE0A02E), Color(0xFF9B4D2E), Color(0xFF5B7C46)],
+      fullDescription:
+          'Кочкор — село на 16 000 жителей, центр одноимённой долины. Здесь штаб-квартира Community Based Tourism (CBT) Кыргызстана. Через офис CBT можно заказать ночёвку в семьях, конные туры, мастер-классы, поездки на Сон-Куль.\n\n'
+          'Главные ремёсла: шырдак (войлочный ковёр), ала-кийиз (войлок с втиснутым узором), туш-кийиз (вышивка). Цена шырдака 1×2 м — от 8 000 сом, делается 2–3 месяца.',
+      imageUrl: 'assets/places/burana_1.jpg',
+      images: [
+        'assets/places/burana_1.jpg',
+        'assets/places/burana_2.jpg',
+      ],
+    ),
   ];
 
   static const characters = [
@@ -1242,8 +1404,8 @@ class MockData {
 class AuthController extends ChangeNotifier {
   bool loaded = false;
   bool isLoggedIn = false;
-  String userName = 'Guest';
-  String email = 'guest@sacred.kg';
+  String userName = '';
+  String email = '';
 
   AuthController() {
     _load();
@@ -1252,8 +1414,8 @@ class AuthController extends ChangeNotifier {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     isLoggedIn = prefs.getBool('session') ?? false;
-    userName = prefs.getString('userName') ?? 'Guest';
-    email = prefs.getString('email') ?? 'guest@sacred.kg';
+    userName = isLoggedIn ? (prefs.getString('userName') ?? '') : '';
+    email = isLoggedIn ? (prefs.getString('email') ?? '') : '';
     loaded = true;
     notifyListeners();
   }
@@ -1262,13 +1424,15 @@ class AuthController extends ChangeNotifier {
     if (emailValue.trim().isEmpty || password.trim().isEmpty) {
       return false;
     }
-    final prefs = await SharedPreferences.getInstance();
     isLoggedIn = true;
     email = emailValue.trim();
     userName = email.split('@').first;
-    await prefs.setBool('session', true);
-    await prefs.setString('email', email);
-    await prefs.setString('userName', userName);
+    // Пишем сессию через AuthService — он же синхронизирует legacy-ключи.
+    await AuthService.login(
+      role: UserRole.user,
+      email: email,
+      name: userName,
+    );
     notifyListeners();
     return true;
   }
@@ -1279,32 +1443,31 @@ class AuthController extends ChangeNotifier {
         password.trim().isEmpty) {
       return false;
     }
-    final prefs = await SharedPreferences.getInstance();
     isLoggedIn = true;
     userName = name.trim();
     email = emailValue.trim();
-    await prefs.setBool('session', true);
-    await prefs.setString('email', email);
-    await prefs.setString('userName', userName);
+    await AuthService.login(
+      role: UserRole.user,
+      email: email,
+      name: userName,
+    );
     notifyListeners();
     return true;
   }
 
+  /// Гостевой режим: просто сбрасываем сессию, без подменного email.
+  /// Все защищённые действия проходят через AuthGuard.
   Future<void> guest() async {
-    final prefs = await SharedPreferences.getInstance();
-    isLoggedIn = true;
-    userName = 'Guest';
-    email = 'guest@sacred.kg';
-    await prefs.setBool('session', true);
-    await prefs.setString('email', email);
-    await prefs.setString('userName', userName);
-    notifyListeners();
+    await logout();
   }
 
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('session', false);
+    // Сбрасываем обе системы сессии (legacy ключи AuthController + новый
+    // AuthService), чтобы и колокольчик/комменты/гард сразу видели «гость».
+    await AuthService.logout();
     isLoggedIn = false;
+    userName = '';
+    email = '';
     notifyListeners();
   }
 
@@ -1312,8 +1475,8 @@ class AuthController extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     isLoggedIn = false;
-    userName = 'Guest';
-    email = 'guest@sacred.kg';
+    userName = '';
+    email = '';
     notifyListeners();
   }
 }
@@ -1805,8 +1968,8 @@ class HomeScreen extends ConsumerWidget {
         AppTheme.rose,
       ),
       (
-        'Туры',
-        'Маршруты от наших турагентов',
+        context.l10n.tours,
+        context.l10n.toursCaption,
         Icons.tour_outlined,
         '/tours',
         AppTheme.leaf,
@@ -2964,11 +3127,14 @@ class CatalogScreen extends ConsumerStatefulWidget {
 }
 
 class _CatalogScreenState extends ConsumerState<CatalogScreen> {
+  static const _pageSize = 6;
   final searchController = TextEditingController();
+  final _pageController = PageController();
   String query = '';
   String? regionId;
   PlaceType? type;
   bool sortByRating = true;
+  int _currentPage = 0;
 
   @override
   void initState() {
@@ -2979,7 +3145,15 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
   @override
   void dispose() {
     searchController.dispose();
+    _pageController.dispose();
     super.dispose();
+  }
+
+  void _resetPagination() {
+    _currentPage = 0;
+    if (_pageController.hasClients) {
+      _pageController.jumpToPage(0);
+    }
   }
 
   @override
@@ -2997,6 +3171,17 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
           ? b.rating.compareTo(a.rating)
           : b.popularity.compareTo(a.popularity),
     );
+    final pageCount = (places.length / _pageSize).ceil().clamp(1, 999);
+    if (_currentPage >= pageCount) {
+      _currentPage = pageCount - 1;
+      if (_pageController.hasClients) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_pageController.hasClients) {
+            _pageController.jumpToPage(_currentPage);
+          }
+        });
+      }
+    }
     final regionName = regionId == null
         ? null
         : MockData.regionById(regionId!).name;
@@ -3019,12 +3204,18 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
             controller: searchController,
             query: query,
             activeFilterCount: activeFilterCount,
-            onChanged: (value) => setState(() => query = value),
+            onChanged: (value) {
+              setState(() {
+                query = value;
+                _resetPagination();
+              });
+            },
             onClear: () => setState(() {
               searchController.clear();
               query = '';
               regionId = null;
               type = null;
+              _resetPagination();
             }),
           ),
           const SizedBox(height: 14),
@@ -3032,9 +3223,18 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
             selectedRegionId: regionId,
             selectedType: type,
             sortByRating: sortByRating,
-            onRegionSelected: (value) => setState(() => regionId = value),
-            onTypeSelected: (value) => setState(() => type = value),
-            onSortChanged: (value) => setState(() => sortByRating = value),
+            onRegionSelected: (value) => setState(() {
+              regionId = value;
+              _resetPagination();
+            }),
+            onTypeSelected: (value) => setState(() {
+              type = value;
+              _resetPagination();
+            }),
+            onSortChanged: (value) => setState(() {
+              sortByRating = value;
+              _resetPagination();
+            }),
           ),
           const SizedBox(height: 18),
           _DetailSectionTitle(
@@ -3044,18 +3244,133 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
           const SizedBox(height: 10),
           if (places.isEmpty)
             EmptyView(message: t('No matching places yet.'))
-          else
-            ...places.indexed.map((entry) {
-              final index = entry.$1;
-              final place = entry.$2;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _CatalogPlaceCard(place: place)
-                    .animate(delay: (35 * index).ms)
-                    .fadeIn()
-                    .slideY(begin: 0.04, end: 0),
-              );
-            }),
+          else ...[
+            SizedBox(
+              height: (_pageSize * 220).toDouble(),
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: pageCount,
+                onPageChanged: (i) => setState(() => _currentPage = i),
+                itemBuilder: (_, pageIndex) {
+                  final from = pageIndex * _pageSize;
+                  final to = (from + _pageSize).clamp(0, places.length);
+                  final pageItems = places.sublist(from, to);
+                  return ListView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
+                    children: pageItems.indexed.map((entry) {
+                      final index = entry.$1;
+                      final place = entry.$2;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _CatalogPlaceCard(place: place)
+                            .animate(delay: (35 * index).ms)
+                            .fadeIn()
+                            .slideY(begin: 0.04, end: 0),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+            ),
+            if (pageCount > 1) ...[
+              const SizedBox(height: 8),
+              _CatalogPaginator(
+                pageCount: pageCount,
+                currentPage: _currentPage,
+                onPrev: _currentPage == 0
+                    ? null
+                    : () {
+                        _pageController.previousPage(
+                          duration: const Duration(milliseconds: 280),
+                          curve: Curves.easeOutCubic,
+                        );
+                      },
+                onNext: _currentPage >= pageCount - 1
+                    ? null
+                    : () {
+                        _pageController.nextPage(
+                          duration: const Duration(milliseconds: 280),
+                          curve: Curves.easeOutCubic,
+                        );
+                      },
+                onJump: (i) {
+                  _pageController.animateToPage(
+                    i,
+                    duration: const Duration(milliseconds: 280),
+                    curve: Curves.easeOutCubic,
+                  );
+                },
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CatalogPaginator extends StatelessWidget {
+  const _CatalogPaginator({
+    required this.pageCount,
+    required this.currentPage,
+    required this.onPrev,
+    required this.onNext,
+    required this.onJump,
+  });
+
+  final int pageCount;
+  final int currentPage;
+  final VoidCallback? onPrev;
+  final VoidCallback? onNext;
+  final ValueChanged<int> onJump;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton.filledTonal(
+            onPressed: onPrev,
+            icon: const Icon(Icons.chevron_left),
+          ),
+          const SizedBox(width: 8),
+          for (var i = 0; i < pageCount; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () => onJump(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: i == currentPage ? 32 : 28,
+                  height: 28,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: i == currentPage
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    '${i + 1}',
+                    style: TextStyle(
+                      color: i == currentPage
+                          ? Theme.of(context).colorScheme.onPrimary
+                          : null,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(width: 8),
+          IconButton.filledTonal(
+            onPressed: onNext,
+            icon: const Icon(Icons.chevron_right),
+          ),
         ],
       ),
     );
@@ -3474,8 +3789,14 @@ class _PlaceDetailScreenState extends ConsumerState<PlaceDetailScreen> {
           _PlaceDetailHero(
             place: place,
             isFavorite: isFavorite,
-            onFavorite: () =>
-                ref.read(appStateProvider).toggleFavorite(place.id),
+            onFavorite: () async {
+              if (await AuthGuard.requireOrPrompt(
+                context,
+                action: 'добавить место в избранное',
+              )) {
+                ref.read(appStateProvider).toggleFavorite(place.id);
+              }
+            },
           ),
           if (place.images.isNotEmpty) ...[
             const SizedBox(height: 14),
@@ -3530,6 +3851,11 @@ class _PlaceDetailScreenState extends ConsumerState<PlaceDetailScreen> {
                 review: review,
               ).animate().fadeIn().slideY(begin: 0.04, end: 0),
             ),
+          const SizedBox(height: 24),
+          CommentsSection(
+            targetType: CommentTarget.place,
+            targetId: place.id,
+          ),
         ],
       ),
     );
@@ -3948,7 +4274,14 @@ class FeedScreen extends ConsumerWidget {
       title: t('Community'),
       actions: [
         IconButton(
-          onPressed: () => context.push('/feed/create'),
+          onPressed: () async {
+            if (await AuthGuard.requireOrPrompt(
+              context,
+              action: 'опубликовать пост в ленте',
+            )) {
+              if (context.mounted) context.push('/feed/create');
+            }
+          },
           icon: const Icon(Icons.add),
         ),
       ],
@@ -3962,70 +4295,96 @@ class FeedScreen extends ConsumerWidget {
               ? null
               : MockData.placeById(post.placeId!);
           return Card(
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: post.color,
-                        child: Text(
-                          post.userName.characters.first,
-                          style: const TextStyle(color: Colors.white),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => context.push('/feed/post/${post.id}'),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: post.color,
+                          child: Text(
+                            post.userName.isEmpty
+                                ? '?'
+                                : post.userName.characters.first
+                                    .toUpperCase(),
+                            style: const TextStyle(color: Colors.white),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              post.userName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                post.userName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
-                            ),
-                            Text(
-                              DateFormat('MMM d, HH:mm').format(post.timestamp),
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
+                              Text(
+                                DateFormat('MMM d, HH:mm')
+                                    .format(post.timestamp),
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
                         ),
+                        Chip(label: Text(post.type.label)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      post.text,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (place != null) ...[
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: () => context.push('/place/${place.id}'),
+                        icon: const Icon(Icons.place),
+                        label: Text(place.title),
                       ),
-                      Chip(label: Text(post.type.label)),
                     ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(post.text),
-                  if (place != null) ...[
-                    const SizedBox(height: 8),
-                    TextButton.icon(
-                      onPressed: () => context.push('/place/${place.id}'),
-                      icon: const Icon(Icons.place),
-                      label: Text(place.title),
+                    const Divider(),
+                    Row(
+                      children: [
+                        TextButton.icon(
+                          onPressed: () async {
+                            if (await AuthGuard.requireOrPrompt(
+                              context,
+                              action: 'поставить лайк',
+                            )) {
+                              ref
+                                  .read(appStateProvider)
+                                  .toggleLike(post.id);
+                            }
+                          },
+                          icon: Icon(
+                            post.liked
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: post.liked
+                                ? Theme.of(context).colorScheme.error
+                                : null,
+                          ),
+                          label: Text('${post.likeCount}'),
+                        ),
+                        TextButton.icon(
+                          onPressed: () =>
+                              context.push('/feed/post/${post.id}'),
+                          icon: const Icon(Icons.chat_bubble_outline),
+                          label: const Text('Обсудить'),
+                        ),
+                      ],
                     ),
                   ],
-                  const Divider(),
-                  Row(
-                    children: [
-                      TextButton.icon(
-                        onPressed: () =>
-                            ref.read(appStateProvider).toggleLike(post.id),
-                        icon: Icon(
-                          post.liked ? Icons.favorite : Icons.favorite_border,
-                        ),
-                        label: Text('${post.likeCount}'),
-                      ),
-                      TextButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(Icons.chat_bubble_outline),
-                        label: Text('${post.commentCount}'),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
           );
@@ -4134,10 +4493,17 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   int people = 2;
   bool confirmed = false;
   final notes = TextEditingController();
+  final phone = TextEditingController(text: '+996 ');
+  String? _phoneError;
+
+  /// Валидация формата +996 XXX XXX XXX (Task #11).
+  /// Принимаем 9 цифр после +996, пробелы/дефисы игнорируем.
+  bool _isValidKgPhone(String raw) => KgPhoneInputFormatter.isValid(raw);
 
   @override
   void dispose() {
     notes.dispose();
+    phone.dispose();
     super.dispose();
   }
 
@@ -4211,6 +4577,29 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             ),
           ),
           const SizedBox(height: 12),
+          _BookingFormCard(
+            title: t('5. Contact phone'),
+            subtitle: t(
+              'Required: the administrator will call you to confirm the visit.',
+            ),
+            icon: Icons.phone,
+            color: AppTheme.rose,
+            child: TextField(
+              controller: phone,
+              keyboardType: TextInputType.phone,
+              inputFormatters: [KgPhoneInputFormatter()],
+              decoration: InputDecoration(
+                labelText: '+996 XXX XXX XXX',
+                errorText: _phoneError,
+              ),
+              onChanged: (_) {
+                if (_phoneError != null) {
+                  setState(() => _phoneError = null);
+                }
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
           _RulesConfirmationCard(
             confirmed: confirmed,
             onChanged: (value) => setState(() => confirmed = value),
@@ -4218,7 +4607,20 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           const SizedBox(height: 12),
           FilledButton(
             onPressed: confirmed
-                ? () {
+                ? () async {
+                    if (!await AuthGuard.requireOrPrompt(
+                      context,
+                      action: 'отправить заявку на посещение',
+                    )) {
+                      return;
+                    }
+                    if (!_isValidKgPhone(phone.text)) {
+                      setState(() => _phoneError = t(
+                            'Enter phone in +996 XXX XXX XXX format',
+                          ));
+                      return;
+                    }
+                    final user = await AuthService.getCurrentUser();
                     ref
                         .read(appStateProvider)
                         .addBooking(
@@ -4234,6 +4636,21 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                             createdAt: DateTime.now(),
                           ),
                         );
+                    // Дублируем заявку в админскую систему запросов
+                    // (вкладка «Запросы → От пользователей», Task #11/#12).
+                    await RequestsService.createUserVisitRequest(
+                      fromEmail: user!.email,
+                      fromName: user.name,
+                      contactPhone: phone.text.trim(),
+                      placeId: place.id,
+                      placeTitle: place.title,
+                      extra: {
+                        'date': DateFormat('yyyy-MM-dd').format(selectedDate),
+                        'peopleCount': people,
+                        'notes': notes.text.trim(),
+                      },
+                    );
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(t('Visit request saved locally.')),
@@ -4714,18 +5131,11 @@ class SettingsScreen extends ConsumerWidget {
             onChanged: (value) =>
                 ref.read(settingsProvider).setLanguage(value ?? 'ky'),
           ),
-          const SizedBox(height: 8),
-          SwitchListTile(
-            value: settings.musicEnabled,
-            title: Text(l10n.music),
-            subtitle: Text(l10n.mockSettingOnly),
-            onChanged: (value) => ref.read(settingsProvider).setMusic(value),
-          ),
           const SizedBox(height: 16),
           SectionBlock(
-            title: l10n.contactDevelopers,
-            text: 'hack2026@sacred.kg',
-            icon: Icons.mail,
+            title: l10n.contactSupport,
+            text: 'help@sacred.kg',
+            icon: Icons.support_agent,
           ),
           SectionBlock(
             title: l10n.about,
@@ -4746,12 +5156,66 @@ class AccountScreen extends ConsumerWidget {
     final auth = ref.watch(authProvider);
     final state = ref.watch(appStateProvider);
     final l10n = context.l10n;
-    final displayName = LocalizedContent.phrase(auth.userName);
+    // Гость = нет сессии. Показываем плашку «Войдите».
+    if (!auth.isLoggedIn) {
+      return AppScaffold(
+        selectedIndex: 5,
+        title: l10n.account,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.person_outline,
+                  size: 72,
+                  color: Theme.of(context).hintColor,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  l10n.notLoggedIn,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  l10n.notLoggedInBody,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: () => context.go('/login'),
+                  icon: const Icon(Icons.login),
+                  label: Text(l10n.login),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () => context.push('/register'),
+                  icon: const Icon(Icons.person_add_alt_1_outlined),
+                  label: Text(l10n.createAccount),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final rawName = LocalizedContent.phrase(auth.userName);
+    final displayName = rawName.trim().isEmpty
+        ? auth.email.split('@').first
+        : rawName;
+    final avatarLetter = displayName.characters.isEmpty
+        ? '?'
+        : displayName.characters.first.toUpperCase();
     final favorites = MockData.places
         .where((place) => state.favorites.contains(place.id))
         .toList();
     return AppScaffold(
-      selectedIndex: 4,
+      selectedIndex: 5,
       title: l10n.account,
       child: ListView(
         padding: const EdgeInsets.all(16),
@@ -4765,7 +5229,7 @@ class AccountScreen extends ConsumerWidget {
                     radius: 34,
                     backgroundColor: AppTheme.leaf,
                     child: Text(
-                      displayName.characters.first.toUpperCase(),
+                      avatarLetter,
                       style: const TextStyle(fontSize: 24, color: Colors.white),
                     ),
                   ),
@@ -4798,7 +5262,15 @@ class AccountScreen extends ConsumerWidget {
           if (favorites.isEmpty)
             EmptyView(message: l10n.favoritePlacesEmpty)
           else
-            ...favorites.map((place) => PlaceCard(place: place, wide: true)),
+            ...favorites.map(
+              (place) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: SizedBox(
+                  height: 110,
+                  child: PlaceCard(place: place, wide: true),
+                ),
+              ),
+            ),
           const SizedBox(height: 18),
           Text(
             l10n.myBookings,
@@ -4816,6 +5288,15 @@ class AccountScreen extends ConsumerWidget {
               ),
             ),
           ),
+          const SizedBox(height: 18),
+          Text(
+            t('My requests'),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 4),
+          MyRequestsList(email: auth.email),
           const SizedBox(height: 18),
           Text(
             l10n.shortcuts,
@@ -4921,7 +5402,13 @@ class AppScaffold extends StatelessWidget {
       child: Scaffold(
         appBar: title == null
             ? null
-            : AppBar(title: Text(title!), actions: actions),
+            : AppBar(
+                title: Text(title!),
+                actions: [
+                  const NotificationsBell(),
+                  ...?actions,
+                ],
+              ),
         body: SafeArea(
           top: title == null,
           child: Column(
@@ -4940,6 +5427,7 @@ class AppScaffold extends StatelessWidget {
                       '/home',
                       '/map',
                       '/catalog',
+                      '/tours',
                       '/ai',
                       '/account',
                     ];
@@ -4960,6 +5448,11 @@ class AppScaffold extends StatelessWidget {
                       icon: const Icon(Icons.grid_view_outlined),
                       selectedIcon: const Icon(Icons.grid_view_rounded),
                       label: l10n.places,
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.tour_outlined),
+                      selectedIcon: const Icon(Icons.tour),
+                      label: l10n.tours,
                     ),
                     NavigationDestination(
                       icon: const Icon(Icons.auto_awesome_outlined),
@@ -5054,14 +5547,17 @@ int _navIndexForPath(String path) {
   if (path.startsWith('/catalog') || path.startsWith('/place')) {
     return 2;
   }
-  if (path.startsWith('/ai')) {
+  if (path.startsWith('/tours')) {
     return 3;
+  }
+  if (path.startsWith('/ai')) {
+    return 4;
   }
   if (path.startsWith('/account') ||
       path.startsWith('/feed') ||
       path.startsWith('/booking') ||
       path.startsWith('/settings')) {
-    return 4;
+    return 5;
   }
   return 0;
 }

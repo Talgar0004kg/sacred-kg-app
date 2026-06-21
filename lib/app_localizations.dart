@@ -24,10 +24,28 @@ class AppLocalizations {
       'continueAsGuest': 'Continue as guest',
       'welcomeBack': 'Welcome back',
       'loginSubtitle':
-          'Use any non-empty email and password for the mock session.',
+          'Sign in to plan your trips across Kyrgyzstan and save your favourite places.',
+      'loginGreeting': 'Welcome to Sacred KG',
+      'logoutAction': 'Sign out',
+      'languageMenu': 'Language',
       'email': 'Email',
       'password': 'Password',
-      'bothFieldsRequired': 'Both fields are required.',
+      'bothFieldsRequired': 'Please enter your email and password.',
+      'invalidEmail': 'Invalid email',
+      'enterEmail': 'Enter your email',
+      'minSixChars': 'At least 6 characters',
+      'passwordsDoNotMatch': 'Passwords do not match',
+      'minTwoChars': 'At least 2 characters',
+      'confirmRules': 'Please confirm the rules of visit',
+      'emailAlreadyInUse': 'This email is already in use',
+      'registration': 'Registration',
+      'createTravellerAccount': 'Create a traveller account',
+      'registerCaption':
+          'Save favourites, booking requests and your chats with the Apashka and Atashka AI guides.',
+      'repeatPassword': 'Repeat password',
+      'helperMinSix': 'At least 6 characters',
+      'agreeRules':
+          'I agree to the rules of visiting sacred places and to the processing of my personal data',
       'registerSubtitle': 'A local profile is enough for the prototype.',
       'name': 'Name',
       'register': 'Register',
@@ -47,10 +65,10 @@ class AppLocalizations {
       'kyrgyz': 'Kyrgyz',
       'music': 'Music',
       'mockSettingOnly': 'Mock setting only',
-      'contactDevelopers': 'Contact developers',
+      'contactSupport': 'Contact support',
       'about': 'About',
       'aboutText':
-          'A Flutter mock MVP for sacred places in Kyrgyzstan, built for demo review and future backend migration.',
+          'Sacred KG is your companion for exploring the sacred places, petroglyphs and natural wonders of Kyrgyzstan. Discover ancestral routes, read living stories and plan your journeys with respect for the traditions of the land.',
       'favorites': 'Favorites',
       'favoritePlacesEmpty': 'Favorite places will appear here.',
       'myBookings': 'My bookings',
@@ -67,6 +85,26 @@ class AppLocalizations {
       'cancel': 'Cancel',
       'delete': 'Delete',
       'deleteAccount': 'Delete account',
+      'tours': 'Tours',
+      'toursCaption': 'Routes from our travel agents',
+      'needAccountTitle': 'Account required',
+      'needAccountBody': 'To {action}, sign in or create an account.',
+      'notLoggedIn': 'You are not signed in',
+      'notLoggedInBody':
+          'Sign in or register to save favourites, send requests, and leave comments.',
+      'notifications': 'Notifications',
+      'markAllRead': 'Mark all as read',
+      'noNotifications':
+          'No notifications yet. They will appear when someone replies to your comment or the admin decides on your request.',
+      'comments': 'Comments',
+      'commentsEmpty': 'No comments yet. Be the first.',
+      'loginToComment': 'Sign in to leave comments',
+      'yourComment': 'Your comment…',
+      'yourReply': 'Your reply…',
+      'send': 'Send',
+      'reply': 'Reply',
+      'edit': 'Edit',
+      'report': 'Report',
     },
     'ru': {
       'appTitle': 'Sacred KG',
@@ -76,14 +114,32 @@ class AppLocalizations {
       'onboardingBody':
           'Изучайте Кыргызстан через демо-гидов, карточки регионов, местные публикации, заявки на посещение и ассистента для будущего AI-бэкенда.',
       'login': 'Войти',
-      'createAccount': 'Создать аккаунт',
-      'continueAsGuest': 'Продолжить как гость',
+      'createAccount': 'Регистрация',
+      'continueAsGuest': 'Войти как гость',
       'welcomeBack': 'С возвращением',
       'loginSubtitle':
-          'Для демо-сессии подойдут любые непустые email и пароль.',
+          'Войдите, чтобы планировать поездки по Кыргызстану и сохранять любимые места.',
+      'loginGreeting': 'Добро пожаловать в Sacred KG',
+      'logoutAction': 'Выйти',
+      'languageMenu': 'Язык',
       'email': 'Email',
       'password': 'Пароль',
-      'bothFieldsRequired': 'Заполните оба поля.',
+      'bothFieldsRequired': 'Введите email и пароль.',
+      'invalidEmail': 'Некорректный email',
+      'enterEmail': 'Введите email',
+      'minSixChars': 'Минимум 6 символов',
+      'passwordsDoNotMatch': 'Пароли не совпадают',
+      'minTwoChars': 'Минимум 2 символа',
+      'confirmRules': 'Подтвердите согласие с правилами',
+      'emailAlreadyInUse': 'Этот email уже используется',
+      'registration': 'Регистрация',
+      'createTravellerAccount': 'Создайте аккаунт путешественника',
+      'registerCaption':
+          'Сохраняйте избранное, заявки и переписку с ИИ-гидами Апашкой и Аташкой.',
+      'repeatPassword': 'Повторите пароль',
+      'helperMinSix': 'Не короче 6 символов',
+      'agreeRules':
+          'Согласен с правилами посещения сакральных мест и обработкой персональных данных',
       'registerSubtitle': 'Для прототипа достаточно локального профиля.',
       'name': 'Имя',
       'register': 'Зарегистрироваться',
@@ -103,10 +159,10 @@ class AppLocalizations {
       'kyrgyz': 'Кыргызский',
       'music': 'Музыка',
       'mockSettingOnly': 'Только демо-настройка',
-      'contactDevelopers': 'Связаться с разработчиками',
+      'contactSupport': 'Связаться с поддержкой',
       'about': 'О приложении',
       'aboutText':
-          'Демо MVP на Flutter о священных местах Кыргызстана для просмотра и будущей миграции на бэкенд.',
+          'Sacred KG — ваш проводник по священным местам, петроглифам и природным жемчужинам Кыргызстана. Открывайте маршруты предков, читайте живые истории и планируйте поездки с уважением к традициям этой земли.',
       'favorites': 'Избранное',
       'favoritePlacesEmpty': 'Избранные места появятся здесь.',
       'myBookings': 'Мои заявки',
@@ -123,21 +179,63 @@ class AppLocalizations {
       'cancel': 'Отмена',
       'delete': 'Удалить',
       'deleteAccount': 'Удалить аккаунт',
+      'tours': 'Туры',
+      'toursCaption': 'Маршруты от наших турагентов',
+      'needAccountTitle': 'Нужен аккаунт',
+      'needAccountBody':
+          'Чтобы {action}, войдите в аккаунт или зарегистрируйтесь.',
+      'notLoggedIn': 'Вы не авторизованы',
+      'notLoggedInBody':
+          'Войдите или зарегистрируйтесь, чтобы сохранять избранное, '
+          'отправлять заявки и оставлять комментарии.',
+      'notifications': 'Уведомления',
+      'markAllRead': 'Прочитать все',
+      'noNotifications':
+          'Пока нет уведомлений. Они появятся, когда кто-то ответит на ваш '
+          'комментарий или админ решит по заявке.',
+      'comments': 'Комментарии',
+      'commentsEmpty': 'Комментариев пока нет. Будьте первым.',
+      'loginToComment': 'Войдите, чтобы оставлять комментарии',
+      'yourComment': 'Ваш комментарий…',
+      'yourReply': 'Ваш ответ…',
+      'send': 'Отправить',
+      'reply': 'Ответить',
+      'edit': 'Изменить',
+      'report': 'Пожаловаться',
     },
     'ky': {
       'appTitle': 'Sacred KG',
       'tagline': 'Кыргызстандын ыйык маршруттары',
       'onboardingTitle': 'Ыйык жерлер, урматтуу маршруттар, жандуу окуялар.',
       'onboardingBody':
-          'Кыргызстанды демо маданий гиддер, регион карталары, жергиликтүү билдирүүлөр, зыяратка өтүнмөлөр жана келечектеги AI бэкендге даяр ассистент аркылуу изилдеңиз.',
+          'Кыргызстанды демо маданий гиддер, регион карталары, жергиликтүү билдирүүлөр, зыяратка өтүнмөлөр жана келечектеги AI бэкендге даяр жардамчы аркылуу изилдеңиз.',
       'login': 'Кирүү',
-      'createAccount': 'Аккаунт түзүү',
-      'continueAsGuest': 'Конок катары улантуу',
+      'createAccount': 'Катталуу',
+      'continueAsGuest': 'Конок катары кирүү',
       'welcomeBack': 'Кайра кош келиңиз',
-      'loginSubtitle': 'Демо-сессия үчүн бош эмес email жана сыр сөз жетиштүү.',
+      'loginSubtitle':
+          'Кыргызстан боюнча саякатыңызды пландоо жана сүйүктүү жерлерди сактоо үчүн кириңиз.',
+      'loginGreeting': 'Sacred KG тиркемесине кош келиңиз',
+      'logoutAction': 'Чыгуу',
+      'languageMenu': 'Тил',
       'email': 'Email',
-      'password': 'Сыр сөз',
-      'bothFieldsRequired': 'Эки талааны тең толтуруңуз.',
+      'password': 'Сырсөз',
+      'bothFieldsRequired': 'Email жана сырсөздү жазыңыз.',
+      'invalidEmail': 'Email туура эмес',
+      'enterEmail': 'Email жазыңыз',
+      'minSixChars': 'Кеминде 6 белги',
+      'passwordsDoNotMatch': 'Сырсөздөр дал келбейт',
+      'minTwoChars': 'Кеминде 2 белги',
+      'confirmRules': 'Эрежелер менен макул экениңизди ырастаңыз',
+      'emailAlreadyInUse': 'Бул email мурунтан колдонулууда',
+      'registration': 'Катталуу',
+      'createTravellerAccount': 'Саякатчы аккаунтун түзүңүз',
+      'registerCaption':
+          'Сүйүктүү жерлерди, өтүнмөлөрдү жана Апашка менен Аташка ИИ-гиддер менен баарлашууну сактаңыз.',
+      'repeatPassword': 'Сырсөздү кайталаңыз',
+      'helperMinSix': '6 белгиден кем эмес',
+      'agreeRules':
+          'Ыйык жерлерге баруу эрежелерине жана жеке маалыматтарды иштетүүгө макулмун',
       'registerSubtitle': 'Прототип үчүн локалдык профиль жетиштүү.',
       'name': 'Аты',
       'register': 'Катталуу',
@@ -157,10 +255,10 @@ class AppLocalizations {
       'kyrgyz': 'Кыргызча',
       'music': 'Музыка',
       'mockSettingOnly': 'Демо жөндөө гана',
-      'contactDevelopers': 'Иштеп чыгуучулар менен байланыш',
+      'contactSupport': 'Колдоо кызматы менен байланыш',
       'about': 'Тиркеме тууралуу',
       'aboutText':
-          'Кыргызстандын ыйык жерлери тууралуу Flutter демо MVP, кароо жана келечекте бэкендге көчүрүү үчүн.',
+          'Sacred KG — Кыргызстандын ыйык жерлерине, петроглифтерине жана табият кооздуктарына болгон жол көрсөткүчүңүз. Ата-бабалардын жолдорун ачыңыз, жандуу окуяларды окуңуз жана бул жердин салтын урматтоо менен саякатыңызды пландаңыз.',
       'favorites': 'Тандалгандар',
       'favoritePlacesEmpty': 'Тандалган жерлер бул жерде көрүнөт.',
       'myBookings': 'Менин өтүнмөлөрүм',
@@ -177,6 +275,29 @@ class AppLocalizations {
       'cancel': 'Жокко чыгаруу',
       'delete': 'Өчүрүү',
       'deleteAccount': 'Аккаунтту өчүрүү',
+      'tours': 'Турлар',
+      'toursCaption': 'Турагенттерибиздин маршруттары',
+      'needAccountTitle': 'Аккаунт керек',
+      'needAccountBody':
+          'Бул иш-аракетти {action} үчүн аккаунтуңузга кириңиз же катталыңыз.',
+      'notLoggedIn': 'Аккаунтуңузга кирген жоксуз',
+      'notLoggedInBody':
+          'Сүйүктүүлөрдү сактоо, өтүнмө жөнөтүү жана комментарий калтыруу '
+          'үчүн кириңиз же катталыңыз.',
+      'notifications': 'Билдирүүлөр',
+      'markAllRead': 'Баарын окулду деп белгилөө',
+      'noNotifications':
+          'Билдирүүлөр азырынча жок. Бирөө комментарийиңизге жооп бергенде '
+          'же админ өтүнмөңүзгө чечим чыгарганда көрүнөт.',
+      'comments': 'Комментарийлер',
+      'commentsEmpty': 'Комментарийлер жок. Биринчи болуңуз.',
+      'loginToComment': 'Комментарий калтыруу үчүн кириңиз',
+      'yourComment': 'Сиздин комментарий…',
+      'yourReply': 'Сиздин жооп…',
+      'send': 'Жөнөтүү',
+      'reply': 'Жооп берүү',
+      'edit': 'Өзгөртүү',
+      'report': 'Даттануу',
     },
   };
 
@@ -193,9 +314,25 @@ class AppLocalizations {
   String get continueAsGuest => text('continueAsGuest');
   String get welcomeBack => text('welcomeBack');
   String get loginSubtitle => text('loginSubtitle');
+  String get loginGreeting => text('loginGreeting');
+  String get logoutAction => text('logoutAction');
+  String get languageMenu => text('languageMenu');
   String get email => text('email');
   String get password => text('password');
   String get bothFieldsRequired => text('bothFieldsRequired');
+  String get invalidEmail => text('invalidEmail');
+  String get enterEmail => text('enterEmail');
+  String get minSixChars => text('minSixChars');
+  String get passwordsDoNotMatch => text('passwordsDoNotMatch');
+  String get minTwoChars => text('minTwoChars');
+  String get confirmRules => text('confirmRules');
+  String get emailAlreadyInUse => text('emailAlreadyInUse');
+  String get registration => text('registration');
+  String get createTravellerAccount => text('createTravellerAccount');
+  String get registerCaption => text('registerCaption');
+  String get repeatPassword => text('repeatPassword');
+  String get helperMinSix => text('helperMinSix');
+  String get agreeRules => text('agreeRules');
   String get registerSubtitle => text('registerSubtitle');
   String get name => text('name');
   String get register => text('register');
@@ -215,7 +352,7 @@ class AppLocalizations {
   String get kyrgyz => text('kyrgyz');
   String get music => text('music');
   String get mockSettingOnly => text('mockSettingOnly');
-  String get contactDevelopers => text('contactDevelopers');
+  String get contactSupport => text('contactSupport');
   String get about => text('about');
   String get aboutText => text('aboutText');
   String get favorites => text('favorites');
@@ -233,6 +370,25 @@ class AppLocalizations {
   String get cancel => text('cancel');
   String get delete => text('delete');
   String get deleteAccount => text('deleteAccount');
+  String get tours => text('tours');
+  String get toursCaption => text('toursCaption');
+  String get needAccountTitle => text('needAccountTitle');
+  String needAccountBody(String action) =>
+      text('needAccountBody').replaceAll('{action}', action);
+  String get notLoggedIn => text('notLoggedIn');
+  String get notLoggedInBody => text('notLoggedInBody');
+  String get notifications => text('notifications');
+  String get markAllRead => text('markAllRead');
+  String get noNotifications => text('noNotifications');
+  String get comments => text('comments');
+  String get commentsEmpty => text('commentsEmpty');
+  String get loginToComment => text('loginToComment');
+  String get yourComment => text('yourComment');
+  String get yourReply => text('yourReply');
+  String get send => text('send');
+  String get reply => text('reply');
+  String get edit => text('edit');
+  String get report => text('report');
 }
 
 class _AppLocalizationsDelegate
